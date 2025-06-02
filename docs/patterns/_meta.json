@@ -1,0 +1,23 @@
+[
+  "index",
+  {
+    "type": "dir",
+    "name": "javascript-and-typescript",
+    "label": "Javascript & Typescript"
+  },
+  {
+    "type": "dir",
+    "name": "react",
+    "label": "React"
+  },
+  {
+    "type": "dir",
+    "name": "functional-programming",
+    "label": "함수형 프로그래밍"
+  },
+  {
+    "type": "dir",
+    "name": "object-oriented-programming",
+    "label": "객체 지향 프로그래밍"
+  }
+]
