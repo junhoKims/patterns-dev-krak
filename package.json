@@ -1,0 +1,48 @@
+{
+  "name": "patterns-dev-krak",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "rspress build",
+    "check": "biome check --write",
+    "dev": "rspress dev",
+    "format": "biome format --write",
+    "preview": "rspress preview",
+    "clean": "rm -rf dist && rm -rf node_modules && pnpm store prune && pnpm install"
+  },
+  "dependencies": {
+    "rspress": "^1.40.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^18.11.17"
+  },
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "packageManager": "pnpm@10.10.0",
+  "volta": {
+    "node": "22.14.0",
+    "pnpm": "10.10.0"
+  },
+  "author": "junhoKims",
+  "keywords": [
+    "patterns",
+    "javascript",
+    "typescript",
+    "react",
+    "design-pattern"
+  ],
+  "files": ["dist", "README.md"],
+  "homepage": "https://github.com/junhoKims/patterns-dev-krak",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/junhoKims/patterns-dev-krak.git"
+  },
+  "bugs": {
+    "url": "https://github.com/junhoKims/utils-dev-krak/issues"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
