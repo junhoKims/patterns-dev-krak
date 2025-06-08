@@ -17,7 +17,7 @@
   },
   {
     "type": "dir",
-    "name": "object-oriented-programming",
-    "label": "객체 지향 프로그래밍"
+    "name": "gof",
+    "label": "GoF 패턴"
   }
 ]

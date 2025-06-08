@@ -1,0 +1,157 @@
+# Factory Method (팩토리 메서드)
+
+객체 생성을 추상화된 기능을 구현한 서브 클래스로 분리해 처리 및 캡슐화
+
+`팩토리 메서드는 공장을 구현하는 것이다.`
+
+예시를 직접 보는게 가장 이해가 빠르다.
+
+## 예제
+
+1. 객체지향에서 사용하는 클래스에 사용하는 방법
+2. Hook을 이용해 구현하는 방법
+
+### 클래스를 사용한 팩토리 메서드
+
+```tsx title="Car.tsx"
+export interface Car {
+  name: string;
+  deliver(): string;
+}
+
+/**
+ * 추상클래스 선언
+ * 
+ * 1. 자동차의 설계도
+ * 2. 모든 자동차는 createCar, produceCar 기능을 가진다.
+ */
+abstract class CarFactory {
+  public abstract createCar(): Car;
+
+  public produceCar(): string {
+    const car = this.createCar();
+    return `
+      1. 생산
+      2. ${car.deliver()}
+      3. 완성 ${car.name}
+    `
+  }
+}
+```
+
+```tsx title="CarModels.tsx"
+import { Car } from './car';
+
+/**
+ * 자동차 모델들 구현
+ * 
+ * 1. 자동차 모델은 다양하다.
+ * 2. 모든 자동차 모델은 Car라는 인터페이스 타입을 가진다.
+ */
+export class Canival extends Car {
+  name = "모델 Carnival";
+
+  deliver(): string {
+    return '카니발 주행 테스트 완료';
+  }
+}
+
+export class Sedan extends Car {
+  name = "모델 Sedan";
+
+  deliver(): string {
+    return '세단 주행 테스트 완료'
+  }
+}
+```
+
+```tsx title="CarFactories.tsx"
+import { CarFactory } from './CarModels';
+
+/**
+ * 추상클래스를 구현하는 서브클래스 구현
+ * 
+ * 1. 자동차 기능을 탑재한 특정 모델 자동차들을 구현한다
+ */
+class CanivalFactory extends CarFactory {
+  public createCar(): Car {
+    return new Canival();
+  }
+}
+
+class SedanFactory extends CarFactory {
+  public createCar(): Car {
+    return new Sedan();
+  }
+}
+
+// Client에서...
+const canival = new CanivalFactory();
+const sedan = new SedanFactory();
+```
+
+### Hook을 이용한 팩토리 메서드 
+
+`react`의 context를 추상화하여 Factory처럼 다양한 Context Hook을 생성한다.
+
+```tsx title="makeCounterHook.ts"
+/**
+ * Factory Hook
+ * 
+ * 카운트가 증가하는 액션을 콜백으로 받아(추상화) 처리한다.
+ */
+const makeCounterHook = (changeFn: (current: number) => number) => {
+  return (initialVal: number) => {
+    const [count, setCount] = useState(initialVal);
+
+    /**
+     * changeFn을 외부에서 작성하므로
+     * 증감여부를 다양하게 구현한 hook을 만들 수 있다.
+     */
+    const increment = () => setCount((current) => changeFn(current));
+    const decrement = () => setCount((current) => -changeFn(-current));
+    const reset = () => setCount(initialVal);
+
+    return { count, increment, decrement, reset };
+  };
+};
+```
+
+```tsx title="Counter.tsx"
+import { makeCounterHook } from './makeCounterHook';
+
+/**
+ * Factory Hook을 이용해 공장처럼 다른 기능을 가진 Hook을 빠르게 생성
+ */
+const useCounterSingle = makeCounterHook((v) => v + 1);
+const useCounterDouble = makeCounterHook((v) => v + 2);
+
+const MultiCounter = () => {
+  const singleCounter = useCounterSingle();
+  const doubleCounter = useCounterDouble();
+
+  return (
+    <div>
+      <div>
+        <h3>SingleCounter</h3>
+        <p>Count: {useCounterSingle.count}</p>
+        <button onClick={useCounterSingle.increment}>+</button>
+        <button onClick={useCounterSingle.decrement}>-</button>
+        <button onClick={useCounterSingle.reset}>Reset</button>
+      </div>
+      <div>
+        <h3>DoubleCounter</h3>
+        <p>Count: {doubleCountercount}</p>
+        <button onClick={doubleCounter.increment}>+</button>
+        <button onClick={doubleCounter.decrement}>-</button>
+        <button onClick={doubleCounter.reset}>Reset</button>
+      </div>
+    </div>
+  );
+}
+```
+
+## 장점
+
+1. 확장성이 좋다 (새로운 아이템 추가가 매우 쉬워짐)
+2. 일관성을 보장 (동일한 기능을 가짐을 쉽게 이해할 수 있음)
