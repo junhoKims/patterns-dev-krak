@@ -39,7 +39,7 @@ abstract class CarFactory {
 }
 ```
 
-```tsx title="CarModels.tsx"
+```tsx title="CarModels.tsx {9,17}"
 import { Car } from './car';
 
 /**
@@ -65,7 +65,7 @@ export class Sedan extends Car {
 }
 ```
 
-```tsx title="CarFactories.tsx"
+```tsx title="CarFactories.tsx {8,14}"
 import { CarFactory } from './CarModels';
 
 /**
@@ -90,11 +90,11 @@ const canival = new CanivalFactory();
 const sedan = new SedanFactory();
 ```
 
-### Hook을 이용한 팩토리 메서드 
+### Hook을 이용한 팩토리 메서드
 
 `react`의 context를 추상화하여 Factory처럼 다양한 Context Hook을 생성한다.
 
-```tsx title="makeCounterHook.ts"
+```tsx title="makeCounterHook.ts" {6,14-15}
 /**
  * Factory Hook
  * 
@@ -117,7 +117,7 @@ const makeCounterHook = (changeFn: (current: number) => number) => {
 };
 ```
 
-```tsx title="Counter.tsx"
+```tsx title="Counter.tsx" {6-7,10-11}
 import { makeCounterHook } from './makeCounterHook';
 
 /**
@@ -155,3 +155,7 @@ const MultiCounter = () => {
 
 1. 확장성이 좋다 (새로운 아이템 추가가 매우 쉬워짐)
 2. 일관성을 보장 (동일한 기능을 가짐을 쉽게 이해할 수 있음)
+
+## 참고
+
+- [React Hook Factory](https://tylur.blog/react-hook-factory/)
