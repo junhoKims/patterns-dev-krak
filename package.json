@@ -1,6 +1,6 @@
 {
   "name": "patterns-dev-krak",
-  "version": "0.0.2",
+  "version": "0.1.1",
   "scripts": {
     "build": "rspress build",
     "check": "biome check --write",
@@ -32,14 +32,14 @@
     "react",
     "design-pattern"
   ],
-  "files": ["dist", "README.md"],
+  "files": ["doc_build", "README.md"],
   "homepage": "https://github.com/junhoKims/patterns-dev-krak",
   "repository": {
     "type": "git",
     "url": "https://github.com/junhoKims/patterns-dev-krak.git"
   },
   "bugs": {
-    "url": "https://github.com/junhoKims/utils-dev-krak/issues"
+    "url": "https://github.com/junhoKims/patterns-dev-krak/issues"
   },
   "license": "MIT",
   "publishConfig": {
