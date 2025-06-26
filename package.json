@@ -1,6 +1,6 @@
 {
   "name": "patterns-dev-krak",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "scripts": {
     "build": "rspress build",
     "check": "biome check --write",
