@@ -1,0 +1,179 @@
+# Chain Of Responsibility (책임 연쇄 패턴)
+
+여러 기능들을 클래스(또는 다른 객체)로 구현해놓고
+
+조건이 맞는 객체(인스턴스)의 기능을 수행하고 이를 계속 넘겨가며(체이닝) 결과를 적용하는 패턴
+
+## 장점
+
+- 결합도 감소 (기능을 각각 따로 구현하고 테스트 할 수 있으므로 결합도가 낮아짐)
+- 단일 책임 원칙이 준수됨
+- 개방 폐쇄 원칙이 준수됨 (확장에 대해서 함수 추가로 기존 함수 및 객체를 건드릴 필요가 없게됨)
+
+## 예제
+
+- 일반적으로) 특정 값(객체)에 대한 조건이 여러가지인 경우 (값이 배엳일수도, 객체일수도, 숫자일수도, json일수도)
+- 동적으로 기능 수행이 필요한 경우
+
+### 특정 문자열에 다양한 transform을 가하는 예제
+
+- 책임 연쇄 패턴을 통해 각 문자열 변형 기능을 결합도 낮게 처리할 수 있다.
+- 각 transform별 기능 테스트가 용이하다.
+- 기능 확장이 유연해진다.
+
+```tsx {9-12,68-69}
+abstract class BaseTransformer {
+  abstract setNext(transformer: BaseTransformer): BaseTransformer;
+  abstract transform(data: any): any;
+}
+
+class TrimTransformer extends BaseTransformer {
+  private nextTransformer: BaseTransformer | null = null;
+  
+  setNext(transformer: BaseTransformer): BaseTransformer {
+    this.nextTransformer = transformer;
+    return transformer;    
+  }
+  
+  transform(data: any): any {
+    if (typeof data === 'string') {
+      data = data.trim();
+    }
+    
+    return this.nextTransformer
+      ? this.nextTransformer.transform(data)
+      : data;
+  }
+}
+
+class LowerCaseTransformer extends BaseTransformer {
+  private nextTransformer: BaseTransformer | null = null;
+  
+  setNext(transformer: BaseTransformer): BaseTransformer {
+    this.nextTransformer = transformer;
+    return transformer;    
+  }
+  
+  transform(data: any): any {
+    if (typeof data === 'string') {
+      data = data.toLowerCase();
+    }
+    
+    return this.nextTransformer
+      ? this.nextTransformer.transform(data)
+      : data;
+  }
+}
+
+class NullToUndefinedTransformer extends BaseTransformer {
+  private nextTransformer: BaseTransformer | null = null;
+  
+  setNext(transformer: BaseTransformer): BaseTransformer {
+    this.nextTransformer = transformer;
+    return transformer;    
+  }
+  
+  transform(data: any): any {
+    if (data === null) {
+      data = undefined;
+    }
+    
+    return this.nextTransformer
+      ? this.nextTransformer.transform(data)
+      : data;
+  }
+}
+
+function createTransformPipeline() {
+  const trim = new TrimTransformer();
+  const lowerCase = new LowerCaseTransformer();
+  const nullToUndefined = new NullToUndefinedTransformer();
+  
+  trim.setNext(lowerCase).setNext(nullToUndefined);
+  return trim;
+}
+
+const pipeline = createTransformPipeline();
+console.log(pipeline.transform(null)); // undefined
+console.log(pipeline.transform(' keind eisH ')); // 'keind eish'
+
+```
+
+### 특정 결과값에 대한 조건 validation이 필요할 때
+
+- 아래 예시에서 특정값(input)이 정해진 타입이 아니거나 다양하게 들어올 가능성이 있을 때에 패턴을 사용한다
+- 각 조건별 기능을 구현하고 체이닝하여 조건에 일치하는 경우 기능을 수행
+
+```tsx {13,29-35}
+/**
+ * 연쇄 체이닝을 적용할 함수의 타입 정의
+ */
+type ConditionFn = (input: any) => {
+  execute: boolean;
+  result?: any;
+}
+
+function createConditionFnChain() {
+  /**
+   * 클로저를 통해 함수 배열을 관리
+   */
+  const fns: ConditionFn[] = [];
+  
+  return {
+    /**
+     * 체이닝할 함수를 배열에 추가
+     */
+    add(fn: ConditionFn) {
+      fns.push(fn);
+      return this;
+    },
+    
+    execute(input: any): any {
+      /**
+       * 배열을 순회하며 조건(execute 여부)에 일치하면 함수를 수행하고
+       * 수행 결과를 다음 체이닝 인자로 전달
+       */
+      for (const fn of fns) {
+        const { execute, result } = fn(input);
+        
+        if (execute) {
+          return result !== undefined ? result : input;
+        }
+      }
+      
+      return input;
+    }
+  };
+}
+
+function validateNullAndUndefined(input: any) {
+  if (input === null || input === undefined) {
+    return { execute: true, result: 'default' }
+  }
+  return { execute: false }
+}
+
+function validateInputLength(input: any) {
+  if (typeof input === 'string' && input.length > 10) {
+    return { execute: true, result: input.substring(0, 10) + '...' }
+  }
+  return { execute: false }
+}
+
+function validateArray(input: any) {
+  if (Array.isArray(input) && input.length > 3) {
+    return { execute: true, result: input.slice(0, 3) }
+  }
+  return { execute: false }
+}
+
+const processor = createConditionFnChain()
+  .add(validateNullAndUndefined)
+  .add(validateInputLength)
+  .add(validateArray)
+
+console.log(processor.execute(null)); // 'default'
+console.log(processor.execute('This is My Travel Journey')); // 'This is My...'
+console.log(processor.execute([1,2,3,4,5,6])); // [1,2,3]
+console.log(processor.execute('input')); // 'input'
+```
