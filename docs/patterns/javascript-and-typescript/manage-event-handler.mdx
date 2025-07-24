@@ -1,0 +1,49 @@
+# Manage Event Handler (이베트 핸들러 관리)
+
+이벤트 핸들러의 확실한 GC처리를 위해 모듈로 관리하는 전략
+
+이벤트 핸들러의 메모리 누수를 방지하기 위한 첫걸음은, 이벤트를 등록하는 순간부터 ‘언제 해제할지’를 함께 고민하는 것
+
+
+```js
+const ManageHandler = () => {
+  const handlerMap = new Map();
+  
+  function addHandleEvent(element, action, key, fn) {
+    el.addEventListener('click', fn);
+    handlerMap.set(key, fn);
+  }
+
+  function removeHandleEvent(element, action, key, fn) {
+    el.removeEventListner(action, fn);
+    handlerMap.delete(key)
+  }
+}
+```
+
+```jsx
+const App = () => {
+  const btnRef1 = useRef();
+  const btnRef2 = useRef();
+  const btnRef3 = useRef();
+
+  useEffect(() => {
+    HandleEvent.add(btnRef1.current, 'click', () => { console.log('click1!')})
+    HandleEvent.add(btnRef2.current, 'click', () => { console.log('click2!')})
+    HandleEvent.add(btnRef3.current, 'click', () => { console.log('click3!')})
+
+    return () => {
+      // HandleEvent.remove(btnRef1.current, 'click')
+      HandleEvent.cleanup();
+    }
+  }, []);
+  
+  return (
+    <div className="btn">
+      <button ref={btnRef1} type="button" click={() => console.log('1')}>click1</button>
+      <button ref={btnRef2} type="button" click={() => console.log('2')}>click1</button>
+      <button ref={btnRef3} type="button" click={() => console.log('3')}>click1</button>
+    </div>
+  )
+}
+```
