@@ -4,45 +4,97 @@
 
 이벤트 핸들러의 메모리 누수를 방지하기 위한 첫걸음은, 이벤트를 등록하는 순간부터 ‘언제 해제할지’를 함께 고민하는 것
 
+## 예제
 
-```js
-const ManageHandler = () => {
-  const handlerMap = new Map();
-  
-  function addHandleEvent(element, action, key, fn) {
-    el.addEventListener('click', fn);
-    handlerMap.set(key, fn);
-  }
-
-  function removeHandleEvent(element, action, key, fn) {
-    el.removeEventListner(action, fn);
-    handlerMap.delete(key)
-  }
+```tsx
+interface HandlerMap {
+  el: HTMLElement;
+  action: keyof HTMLElementEventMap;
 }
+
+const createEventHandlerFactory = () => {
+  const handlerMap = new Map<(...args: any[]) => any, HandlerMap>();
+
+  window.addEventListener("beforeunload", (e) => {
+    console.log(e);
+  });
+
+  return {
+    add: <T extends HTMLElement, K extends keyof HTMLElementEventMap>(
+      el: T,
+      action: K,
+      fn: (this: HTMLButtonElement, ev: HTMLElementEventMap[K]) => any
+    ) => {
+      if (handlerMap.has(fn)) {
+        return;
+      }
+
+      el.addEventListener(action, fn as any);
+      handlerMap.set(fn, { el, action });
+    },
+    remove: (el: HTMLElement, action: keyof HTMLElementEventMap) => {
+      for (let [fn, value] of handlerMap) {
+        const isMatched = value.action === action && value.el === el;
+
+        if (isMatched) {
+          el.removeEventListener(action, fn);
+          handlerMap.delete(fn);
+          break;
+        }
+      }
+    },
+    clear: () => {
+      for (let [fn, value] of handlerMap) {
+        const { el, action } = value;
+        el.removeEventListener(action, fn);
+      }
+
+      handlerMap.clear();
+    },
+  };
+};
 ```
 
-```jsx
-const App = () => {
-  const btnRef1 = useRef();
-  const btnRef2 = useRef();
-  const btnRef3 = useRef();
+### react에서
+
+```tsx
+const useEventHandlerFactory = () => {
+  const eventHandler = useMemo(() => createEventHandlerFactory(), []);
 
   useEffect(() => {
-    HandleEvent.add(btnRef1.current, 'click', () => { console.log('click1!')})
-    HandleEvent.add(btnRef2.current, 'click', () => { console.log('click2!')})
-    HandleEvent.add(btnRef3.current, 'click', () => { console.log('click3!')})
-
+    /**
+     * Hook 내부에서 클린업 처리
+     */
     return () => {
-      // HandleEvent.remove(btnRef1.current, 'click')
-      HandleEvent.cleanup();
-    }
+      eventHandler.clear();
+    };
   }, []);
-  
+  return eventHandler;
+};
+```
+
+```tsx
+const App() {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handlers = useEventHandlerFactory();
+
+  useEffect(() => {
+    if (btnRef.current && inputRef.current) {
+      /**
+       * GC 처리를 위해 함수를 변수로 할당해줄 필요없이 사용 가능
+       */
+      handlers.add(btnRef.current, 'click', () => console.log('click btn'));
+      handlers.add(inputRef.current, 'blur', () => console.log('blur input'));
+    }
+  }, [])
+
+
+
   return (
-    <div className="btn">
-      <button ref={btnRef1} type="button" click={() => console.log('1')}>click1</button>
-      <button ref={btnRef2} type="button" click={() => console.log('2')}>click1</button>
-      <button ref={btnRef3} type="button" click={() => console.log('3')}>click1</button>
+    <div>
+      <button type="button" ref={btn1ref}>button1</button>
+      <input type="text" ref={inputref} style={{ border: "1px solid black", width: "111px" }} />
     </div>
   )
 }
