@@ -1,23 +1,22 @@
 # Manage Event Handler (이베트 핸들러 관리)
 
-이벤트 핸들러의 확실한 GC처리를 위해 모듈로 관리하는 전략
+많은 이벤트 핸들러를 Map을 통해 factory로 관리하는 패턴
 
-이벤트 핸들러의 메모리 누수를 방지하기 위한 첫걸음은, 이벤트를 등록하는 순간부터 ‘언제 해제할지’를 함께 고민하는 것
+핸들러 관리에서 놓치기 쉬운 클린업(cleanup)을 쉽게 처리 가능하고 react에서도 사용할 수 있습니다.
 
 ## 예제
 
-```tsx
+```tsx {10}
 interface HandlerMap {
   el: HTMLElement;
   action: keyof HTMLElementEventMap;
 }
 
 const createEventHandlerFactory = () => {
+  /**
+   * 함수를 통해 이벤트 핸들러 함수를 Map으로 관리
+   */
   const handlerMap = new Map<(...args: any[]) => any, HandlerMap>();
-
-  window.addEventListener("beforeunload", (e) => {
-    console.log(e);
-  });
 
   return {
     add: <T extends HTMLElement, K extends keyof HTMLElementEventMap>(
@@ -73,7 +72,7 @@ const useEventHandlerFactory = () => {
 };
 ```
 
-```tsx
+```tsx {11-12}
 const App() {
   const btnRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
