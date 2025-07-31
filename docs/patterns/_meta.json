@@ -19,5 +19,10 @@
     "type": "dir",
     "name": "gof",
     "label": "GoF 패턴"
+  },
+  {
+    "type": "dir",
+    "name": "next",
+    "label": "Next"
   }
 ]
