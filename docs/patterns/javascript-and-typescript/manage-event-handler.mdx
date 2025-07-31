@@ -1,0 +1,100 @@
+# Manage Event Handler (이베트 핸들러 관리)
+
+많은 이벤트 핸들러를 Map을 통해 factory로 관리하는 패턴
+
+핸들러 관리에서 놓치기 쉬운 클린업(cleanup)을 쉽게 처리 가능하고 react에서도 사용할 수 있습니다.
+
+## 예제
+
+```tsx {10}
+interface HandlerMap {
+  el: HTMLElement;
+  action: keyof HTMLElementEventMap;
+}
+
+const createEventHandlerFactory = () => {
+  /**
+   * 함수를 통해 이벤트 핸들러 함수를 Map으로 관리
+   */
+  const handlerMap = new Map<(...args: any[]) => any, HandlerMap>();
+
+  return {
+    add: <T extends HTMLElement, K extends keyof HTMLElementEventMap>(
+      el: T,
+      action: K,
+      fn: (this: HTMLButtonElement, ev: HTMLElementEventMap[K]) => any
+    ) => {
+      if (handlerMap.has(fn)) {
+        return;
+      }
+
+      el.addEventListener(action, fn as any);
+      handlerMap.set(fn, { el, action });
+    },
+    remove: (el: HTMLElement, action: keyof HTMLElementEventMap) => {
+      for (let [fn, value] of handlerMap) {
+        const isMatched = value.action === action && value.el === el;
+
+        if (isMatched) {
+          el.removeEventListener(action, fn);
+          handlerMap.delete(fn);
+          break;
+        }
+      }
+    },
+    clear: () => {
+      for (let [fn, value] of handlerMap) {
+        const { el, action } = value;
+        el.removeEventListener(action, fn);
+      }
+
+      handlerMap.clear();
+    },
+  };
+};
+```
+
+### react에서
+
+```tsx
+const useEventHandlerFactory = () => {
+  const eventHandler = useMemo(() => createEventHandlerFactory(), []);
+
+  useEffect(() => {
+    /**
+     * Hook 내부에서 클린업 처리
+     */
+    return () => {
+      eventHandler.clear();
+    };
+  }, []);
+  return eventHandler;
+};
+```
+
+```tsx {11-12}
+const App() {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handlers = useEventHandlerFactory();
+
+  useEffect(() => {
+    if (btnRef.current && inputRef.current) {
+      /**
+       * GC 처리를 위해 함수를 변수로 할당해줄 필요없이 사용 가능
+       */
+      handlers.add(btnRef.current, 'click', () => console.log('click btn'));
+      handlers.add(inputRef.current, 'blur', () => console.log('blur input'));
+    }
+  }, [])
+
+
+
+  return (
+    <div>
+      <button type="button" ref={btn1ref}>button1</button>
+      <input type="text" ref={inputref} style={{ border: "1px solid black", width: "111px" }} />
+    </div>
+  )
+}
+```
