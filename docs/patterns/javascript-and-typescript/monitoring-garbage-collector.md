@@ -40,3 +40,27 @@ GC는 비결정적이며, 메모리 부족 상황이 발생할 때에만 실행(
 // 만약 이 큰 변수가 클로져 상에서 계속 존재해있다면?
 const file = ''; // 큰 정적 파일
 ```
+
+## WeakRef으로 GC 여부 확인하기
+
+WeakRef를 통해서도 GC 여부를 판단할 수 있습니다.
+
+참조하려는 키가 GC되면 `deref()`를 통해 확인하는 식으로 모니터링이 가능합니다.
+
+``` tsx
+let obj = { data: 'test' };
+
+const ref = new WeakRef(obj);
+/**
+ * 기본적으로 참조한 객체를 가리킵니다.
+ * GC 수집되지 않았다면 위의 데이터 (data:'test')를 가리킵니다.
+ */
+console.log(ref.deref()); // { data: 'test' }
+
+obj = null; // 참조를 끊어 GC 수집되도록 처리
+/**
+ * GC가 수집되면 이후 undefined를 반환하게됩니다.
+ * undefined 반환을 통해 GC에 수집되었음을 확인할 수 있습니다.
+ */
+console.log(ref.deref()); // undefined
+```
