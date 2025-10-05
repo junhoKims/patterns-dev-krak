@@ -1,0 +1,270 @@
+# Builder (빌더 패턴)
+
+복잡한 설정이 필요한 객체의 생성 과정을 단순화하는 디자인 패턴
+
+생성 시 설정해야 하는 각 단계를 구역별로 분리하여 구현할 수 있고
+
+상황에 따라 다른 설정의 인스턴스(객체)를 생성하는 것이 쉬움
+
+## 장점
+
+1. 설정 많은 객체 생성 시 코드 단순화
+     - 각 기능별로 설정 구성을 만들어두고 체이닝을 통해 쉽게 생성 가능해짐
+  
+2. 가독성 향상
+     - 위와 같은 이유로 가독성이 높아짐
+
+3. 불변성이 보장됨
+      - 객체가 완전히 생성된 후에만 사용이 가능하여 Immutable함.
+  
+4. 각 설정 기능을 자유롭게 조합하여 다양한 설정의 객체를 쉽게 생성 가능
+
+## 예제
+
+빌더 패턴을 통한 간단한 예제.
+
+이미 많은 부분에서 빌더 패턴을 사용하고 있다.
+
+```tsx
+/**
+ * dayjs객체를 체이닝함으로써 빌더 패턴으로 구현되어 설정을 쉽게 구성할 수 있음
+ */
+const date = dayjs().setHour(3).format('yy-mm-dd');
+
+/**
+ * 테스트코드에서 빌더 패턴이 적용되어 있음
+ */
+test('description', () => {
+  // Test Contents
+})
+  .beforeEach(() => { /** ... */ })
+  .afterAll(() => { /** ... */ })
+  .timeout(5000)
+```
+
+### 객체의 필드를 검사하는 Validator 구현 
+
+객체의 필드를 검사하고 검사 조건을 통과하지 못한 필드와 함께 오류메세지를 제공해주는 Validator 클래스를 빌더 패턴을 통해 구현할 수 있다.
+
+빌더 패턴을 통해 특정 필드의 validate 기능 추가 및 제거가 쉽고, 실제 구성에 있어서 가독성이 높다.
+
+```tsx title="FormValidator.tsx {9-10}"
+interface ValidateRule {
+  validate(value: any): boolean;
+  errorMessage: string;
+}
+
+/**
+ * Validator의 핵심 기능을 포함한 클래스
+ * 
+ * - `addField`를 통해 검사(validate)할 필드와 검사 로직을 넣어줍니다.
+ * - `validate`를 통해 인자로 받은 객체의 각 필드를 검사(validate)합니다.
+ */
+class FormValidator {
+  private rules: Record<string, ValidateRule[]> = {};
+
+  addField(fieldName: string, rules: ValidateRule[]): FormValidator {
+    this.rules[fieldName] = rules;
+    return this;
+  }
+
+  validate(formData: Record<string, any>): Record<string, string[]> {
+    const errors: Record<string, string[]> = {};
+
+    for (const [fieldName, rules] of Object.entries(this.rules)) {
+      const value = formData[fieldName];
+
+      const fieldError: string[] = [];
+
+      for (const rule of rules) {
+        if (!rule.validate(value)) {
+          fieldError.push(rule.errorMessage);
+        }
+      }
+
+      if (fieldError.length > 0) {
+        errors[fieldName] = fieldError;
+      }
+    }
+
+    return errors;
+  }
+}
+```
+- `FormValidator`에서 검사할 필드와 검사로직을 `addField`를 통해 추가합니다.
+- `FormValidator`의 `validate` 함수를 통해 인자로 받은 객체의 필드를 검사합니다.
+
+```tsx title="Validator.tsx {9-10}"s
+class Validator {
+  private validator = new FormValidator();
+
+  required(fieldName: string, message: string = 'this field is required'): Validator {
+    this.validator.addField(fieldName, [
+      {
+        validate: (value) => value !== null && value !== undefined && value !== '',
+        errorMessage: message,
+      },
+    ]);
+    return this;
+  }
+
+  minLength(
+    fieldName: string,
+    min: number,
+    message: string = 'this field is too short',
+  ): Validator {
+    this.validator.addField(fieldName, [
+      {
+        validate: (value) => value.length >= min,
+        errorMessage: message,
+      },
+    ]);
+    return this;
+  }
+
+  email(fieldName: string, message: string = 'Invalid email'): Validator {
+    this.validator.addField(fieldName, [
+      {
+        validate: (value) => (!value ? true : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)),
+        errorMessage: message,
+      },
+    ]);
+    return this;
+  }
+
+  build(): FormValidator {
+    return this.validator;
+  }
+}
+```
+
+실제 사용
+
+```tsx
+const formSchema = new Validator()
+    .required('name', 'Name is required')
+    .minLength('password', 8, 'Password is too short')
+    .email('email', 'Invalid email')
+    .build();
+
+  const result = formSchema.validate({
+    email: 'kraksin12@gmail.com',
+    name: 'krak',
+    password: '122',
+  });
+
+/**
+ * 패스워드가 8보다 작으므로 "Password is too short"가 result에 필드로 추가된다.
+ */
+  console.log(result);
+```
+
+### 빌더패턴을 사용한 HTTP Config 구성하기
+
+빌더 패턴을 사용해 HTTP Config를 디자인합니다. 이를 통해 네트워크 통신 시 동일한 설정으로 통신이 가능하고
+
+만약 다른 설정의 통신이 필요하다면 빌더 패턴을 통해 쉽게 생성해낼 수 있습니다.
+
+```tsx
+const HTTP_REQUEST_CONFIG_DEFAULT_TIMEOUT = 5000;
+
+class HttpRequestConfig {
+  constructor(
+    /**
+     * 생성자의 인자 앞에 public을 붙이면 자동으로 프로퍼티가 됩니다.
+     */
+    public url: string = '',
+    public method: Method = 'GET',
+    public headers: Record<string, string> = {},
+    public data: any = null,
+    public timeout: number = HTTP_REQUEST_CONFIG_DEFAULT_TIMEOUT,
+    public withCredentials: boolean = false,
+  ) {}
+
+  async execute(): Promise<Response> {
+    const options: RequestInit = {
+      method: this.method,
+      headers: this.headers,
+      body: this.data ? JSON.stringify(this.data) : null,
+      credentials: this.withCredentials ? 'include' : 'same-origin',
+    };
+    /**
+     * time out으로 인한 API취소를 위해 클래스를 선언합니다.
+     */
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    options.signal = controller.signal;
+
+    return fetch(this.url, options).finally(() => clearTimeout(timeoutId));
+  }
+}
+
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
+interface IHttpRequest {
+  setUrl(url: string): IHttpRequest;
+  setMethod(method: Method): IHttpRequest;
+  setHeader(key: string, value: string): IHttpRequest;
+  setData(data: any): IHttpRequest;
+  setTimeout(timeout: number): IHttpRequest;
+  withCredentials(withCredentials: boolean): IHttpRequest;
+  build(): HttpRequestConfig;
+}
+
+class HttpRequest implements IHttpRequest {
+  private config: HttpRequestConfig;
+
+  constructor(baseUrl: string = '') {
+    this.config = new HttpRequestConfig();
+    this.config.url = baseUrl;
+  }
+  build(): HttpRequestConfig {
+    return this.config;
+  }
+
+  setUrl(url: string): IHttpRequest {
+    this.config.url = url;
+    return this as unknown as IHttpRequest;
+  }
+
+  setMethod(method: Method): IHttpRequest {
+    this.config.method = method;
+    return this as unknown as IHttpRequest;
+  }
+
+  setHeader(key: string, value: string): IHttpRequest {
+    this.config.headers[key] = value;
+    return this as unknown as IHttpRequest;
+  }
+
+  setData(data: any): IHttpRequest {
+    this.config.data = data;
+    return this as unknown as IHttpRequest;
+  }
+
+  setTimeout(timeout: number): IHttpRequest {
+    this.config.timeout = timeout;
+    return this as unknown as IHttpRequest;
+  }
+
+  withCredentials(withCredentials: boolean): IHttpRequest {
+    this.config.withCredentials = withCredentials;
+    return this as unknown as IHttpRequest;
+  }
+}
+
+/**
+ * 실제 사용 예시
+ */
+useEffect(() => {
+  const request = new HttpRequest()
+    .setUrl('https://jsonplaceholder.typicode.com/posts')
+    .setMethod('GET')
+    .build();
+
+  (async () => {
+    const res = await request.execute();
+    const data = await res.json();
+    console.log(data); // [{ todo: ....}]
+  })();
+}, []);
+```
