@@ -10,3 +10,6 @@ doc_build/
 
 # IDE
 .idea
+
+.env
+.env.*
